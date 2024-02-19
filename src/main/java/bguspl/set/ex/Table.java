@@ -29,13 +29,12 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
+    /* ------------------------------ added fields ------------------------------ */
 
-    /*
-        slotToCard = [ NULL , 4 ,  ,  ,  ,  ,  ,  ]
-                       0      1  2  3  4  5 6  7
-        cardToSlot = [ NULL ,  ,  ,  , 1 ,  ,  ,  ]
-                       0      1  2  3  4  5 6  7
+    /**
+     * data structure for the tokens placed on the table.
      */
+    private final boolean[][] tokens;
 
     /**
      * Constructor for testing.
@@ -49,6 +48,8 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+
+        tokens = new boolean[env.config.players][env.config.tableSize];
     }
 
     /**
@@ -117,7 +118,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        // TODO implement
+        // TODO implement placeCard(int card, int slot)
         this.env.ui.placeCard(card,slot);
     }
 
@@ -130,8 +131,14 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
-        // TODO implement
+        // TODO implement removeCard(int slot)
+        for(int player = 0; player < env.config.players; player++) {
+            this.env.ui.removeToken(player,slot);
+        }
         this.env.ui.removeCard(slot);
+        int card = slotToCard[slot];
+        slotToCard[slot] = null;
+        cardToSlot[card] = null;
     }
 
     /**
@@ -140,8 +147,9 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement
+        // TODO implement placeToken(int player, int slot)
         this.env.ui.placeToken(player,slot);
+        tokens[player][slot] = true;
     }
 
     /**
@@ -151,8 +159,21 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO implement
-        this.env.ui.removeToken(player,slot);
-        return false; //change this to return true iff a token was successfully removed
+        // TODO implement removeToken(int player, int slot)
+        if(tokens[player][slot]) {
+            this.env.ui.removeToken(player,slot);
+            tokens[player][slot] = false;
+            return true;
+        }
+        return false;
     }
+
+    /**
+     * checks if a token of a player is placed on a grid slot.
+     */
+    public boolean hasToken(int player, int slot) {
+        return tokens[player][slot];
+    }
+
+
 }

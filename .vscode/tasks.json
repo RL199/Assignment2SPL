@@ -13,10 +13,10 @@
 			"detail": "$(tools) Build all the Java projects in workspace."
 		},
         {
-            "label": "Maven compile",
+            "label": "Maven clean compile exec:java",
             "type": "shell",
             "command": "mvn",
-            "args": ["compile"]
+            "args": ["clean", "compile", "exec:java"]
         }
 	]
 }
