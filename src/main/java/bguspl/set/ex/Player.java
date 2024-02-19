@@ -52,10 +52,17 @@ public class Player implements Runnable {
      */
     private int score;
 
+    /* ------------------------------ added fields ------------------------------ */
+
     /**
      * The data structure for the actions performed by the player
      */
     BlockingQueue<Integer> actions;
+
+    /**
+     * The number of tokens placed by the player on the table.
+     */
+    private int countTokens;
 
     /**
      * The class constructor.
@@ -72,6 +79,7 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
 
+        this.countTokens = 0;
         this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize);
     }
 
@@ -85,7 +93,29 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
 
         while (!terminate) {
-            // TODO implement main player loop
+            // TODO implement run() main player loop
+
+            // The player thread consumes the actions from the queue, placing or removing a token in the
+            // corresponding slot in the grid on the table.
+            // Once the player places his third token on the table, he must notify the dealer and wait until the
+            // dealer checks if it is a legal set or not. The dealer then gives him either a point or a penalty
+            // accordingly.
+            try{
+                int slot = actions.take();
+                if(table.hasToken(this.id, slot)){
+                    table.removeToken(this.id, slot);
+                    this.countTokens--;
+                }
+                else{
+                    table.placeToken(this.id, slot);
+                    this.countTokens++;
+                }
+                if(this.countTokens == 3){
+                    this.notifyAll();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -101,7 +131,12 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
-                // TODO implement player key press simulator
+                // TODO implement createArtificialIntelligence() player key press simulator
+                // The AI thread generates a random slot.
+
+                int randomSlot = (int) (Math.random() * this.table.countCards());
+                keyPressed(randomSlot);
+
                 try {
                     synchronized (this) { wait(); }
                 } catch (InterruptedException ignored) {}
@@ -115,7 +150,11 @@ public class Player implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        // TODO implement
+        // TODO implement terminate()
+        if(!human){
+            aiThread.interrupt();
+        }
+        playerThread.interrupt();
     }
 
     /**
@@ -124,13 +163,12 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO implement
+        // TODO implement keyPressed(int slot)
         try {
             actions.put(slot);
         } catch (InterruptedException e) {
-
+            e.printStackTrace();
         }
-
     }
 
     /**
@@ -140,7 +178,14 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        // TODO implement
+        // TODO implement point()
+        try {
+            this.score++;
+            this.env.ui.setScore(this.id, this.score);
+            Thread.sleep(this.env.config.pointFreezeMillis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
@@ -150,7 +195,13 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
+        // TODO implement penalty()
+        try {
+            Thread.sleep(this.env.config.penaltyFreezeMillis);
+            this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public int score() {
