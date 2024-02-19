@@ -29,6 +29,14 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
+
+    /*
+        slotToCard = [ NULL , 4 ,  ,  ,  ,  ,  ,  ]
+                       0      1  2  3  4  5 6  7
+        cardToSlot = [ NULL ,  ,  ,  , 1 ,  ,  ,  ]
+                       0      1  2  3  4  5 6  7
+     */
+
     /**
      * Constructor for testing.
      *
@@ -57,6 +65,7 @@ public class Table {
      * This method prints all possible legal sets of cards that are currently on the table.
      */
     public void hints() {
+
         List<Integer> deck = Arrays.stream(slotToCard).filter(Objects::nonNull).collect(Collectors.toList());
         env.util.findSets(deck, Integer.MAX_VALUE).forEach(set -> {
             StringBuilder sb = new StringBuilder().append("Hint: Set found: ");
@@ -80,6 +89,20 @@ public class Table {
     }
 
     /**
+     * @return a list of integers representing all empty slots in the table
+     */
+    public List<Integer> getEmptySlots() {
+        return Arrays.stream(slotToCard).filter(Objects::isNull).collect(Collectors.toList());
+    }
+
+    /**
+     * @return a list of integers representing all empty slots in the table
+     */
+    public List<Integer> getUnassignedCards() {
+        return Arrays.stream(cardToSlot).filter(Objects::isNull).collect(Collectors.toList());
+    }
+
+    /**
      * Places a card on the table in a grid slot.
      * @param card - the card id to place in the slot.
      * @param slot - the slot in which the card should be placed.
@@ -95,6 +118,7 @@ public class Table {
         slotToCard[slot] = card;
 
         // TODO implement
+        this.env.ui.placeCard(card,slot);
     }
 
     /**
@@ -107,6 +131,7 @@ public class Table {
         } catch (InterruptedException ignored) {}
 
         // TODO implement
+        this.env.ui.removeCard(slot);
     }
 
     /**
@@ -116,6 +141,7 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
         // TODO implement
+        this.env.ui.placeToken(player,slot);
     }
 
     /**
@@ -126,6 +152,7 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
         // TODO implement
-        return false;
+        this.env.ui.removeToken(player,slot);
+        return false; //change this to return true iff a token was successfully removed
     }
 }
