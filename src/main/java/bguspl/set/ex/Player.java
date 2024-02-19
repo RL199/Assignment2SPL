@@ -2,6 +2,9 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
 /**
  * This class manages the players' threads and data
  *
@@ -9,7 +12,6 @@ import bguspl.set.Env;
  * @inv score >= 0
  */
 public class Player implements Runnable {
-
     /**
      * The game environment object.
      */
@@ -51,6 +53,11 @@ public class Player implements Runnable {
     private int score;
 
     /**
+     * The data structure for the actions performed by the player
+     */
+    BlockingQueue<Integer> actions;
+
+    /**
      * The class constructor.
      *
      * @param env    - the environment object.
@@ -64,6 +71,8 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+
+        this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize);
     }
 
     /**
@@ -88,6 +97,7 @@ public class Player implements Runnable {
      */
     private void createArtificialIntelligence() {
         // note: this is a very, very smart AI (!)
+        // CHATGPT 5 is SHAKING
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
@@ -115,6 +125,12 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
+        try {
+            actions.put(slot);
+        } catch (InterruptedException e) {
+
+        }
+
     }
 
     /**
