@@ -2,10 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -103,6 +100,27 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         // TODO implement removeCardsFromTable()
+        // If there is a set, remove the cards from the set
+        for(int i = 0; i < env.config.players; i++) {
+            int[] token_cards = new int[env.config.featureSize];
+            for(int j = 0; j < token_cards.length; j++)
+                token_cards[j] = -1;
+
+            int count = 0;
+            for(int slot = 0; slot < env.config.tableSize; slot++)
+                if(table.hasToken(i,slot))
+                    token_cards[count++] = table.slotToCard[slot];
+
+            boolean is_a_set = env.util.testSet(token_cards);
+            if(is_a_set) {
+                for(Integer card : token_cards) {
+                    if(card > 0) {
+                        System.out.println(card);
+                        table.removeCard(table.cardToSlot[card]);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -111,20 +129,18 @@ public class Dealer implements Runnable {
     private void placeCardsOnTable() {
         // TODO implement placeCardsOnTable()
 
-        // int slots_available = this.env.config.tableSize - table.countCards();
-        // int cards_left_in_deck = deck.size();
-        // if(slots_available > 0 && !deck.isEmpty()) {
-        //     int cards_num = Math.min(slots_available,cards_left_in_deck);
-        //     List<Integer>   slots = table.getEmptySlots(),
-        //             cards = table.getUnassignedCards();
-        //     Iterator<Integer>   slots_iterator = slots.iterator(),
-        //             cards_iterator = cards.iterator();
-        //     int count_placed = 0;
-        //     while(slots_iterator.hasNext() && count_placed <= cards_num) {
-        //         table.placeCard(cards_iterator.next(),slots_iterator.next());
-        //         count_placed++;
-        //     }
-        // }
+         int slots_available = this.env.config.tableSize - table.countCards();
+
+         if(slots_available > 0 && !deck.isEmpty()) {
+             for (int slot = 0; slot < this.env.config.tableSize; slot++) {
+                 if (table.slotToCard[slot] == null) {
+                     int card_number = (int) (Math.random() * (deck.size()));
+                     int card = deck.remove(card_number);
+                     table.placeCard(card, slot);
+                 }
+             }
+         }
+
 
     }
 
@@ -133,11 +149,12 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement sleepUntilWokenOrTimeout()
-        // try {
-        //     Thread.currentThread().wait(this.env.config.turnTimeoutMillis);
-        // } catch (InterruptedException ignored) {
-        //     //TODO check if need to do anything in case of exception
-        // }
+         try {
+             Thread.currentThread().sleep(this.env.config.turnTimeoutMillis);
+         } catch (InterruptedException ignored) {
+             //TODO check if need to do anything in case of exception
+             System.out.println(ignored.getMessage());
+         }
     }
 
     /**
@@ -151,6 +168,7 @@ public class Dealer implements Runnable {
             this.env.ui.setCountdown(millies,false);
         } else {
             millies = System.currentTimeMillis() - time_start;
+            millies = this.env.config.turnTimeoutMillis - millies;
             boolean warning = millies <= this.env.config.turnTimeoutWarningMillis;
             this.env.ui.setCountdown(millies,warning);
         }
