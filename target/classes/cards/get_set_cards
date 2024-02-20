@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Each card name will represent it's properties, the number indicates: number, color, shape, shading.
+# The mapping is:
+#   number:  {1:1,          2:2,         3:3}
+#   color:   {1:'red',      2:'purple',  3:'green'}
+#   shape:   {1:'squiggle', 2:'diamond', 3:'oval'}
+#   shading: {1:'full',     2:'partial', 3:'empty'}
+
+number=1
+color=1
+shape=1
+shading=1
+
+for i in {1..81}
+do
+    wget -O src/set_cards/${number}${color}${shape}${shading}.png http://www.setgame.com/sites/all/modules/setgame_set/assets/images/new/${i}.png
+    ((number++))
+    if [ $number -eq 4 ]
+    then
+        number=1
+        ((color++))
+        if [ $color -eq 4 ]
+        then
+            color=1
+            ((shape++))
+            if [ $shape -eq 4 ]
+            then
+                shape=1
+                ((shading++))
+                if [ $shading -eq 4 ]
+                then
+                    shading=1
+                fi
+            fi
+        fi
+    fi
+done

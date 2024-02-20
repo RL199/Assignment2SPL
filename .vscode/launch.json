@@ -11,7 +11,7 @@
             "request": "launch",
             "mainClass": "bguspl.set.Main",
             "projectName": "Set_Card_Game",
-            "preLaunchTask": "Maven compile"
+            "preLaunchTask": "Maven clean compile exec:java"
         }
     ]
 }

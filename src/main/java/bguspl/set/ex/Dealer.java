@@ -40,7 +40,7 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
-    /*======Added fields======*/
+    /* ------------------------------ Added fields ------------------------------ */
     private long time_start;
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -83,7 +83,10 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        // TODO implement
+        // TODO implement terminate()
+        for (Player player : players) {
+            player.terminate();
+        }
     }
 
     /**
@@ -99,29 +102,29 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        // TODO implement
+        // TODO implement removeCardsFromTable()
     }
 
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        // TODO implement
-        int slots_available = this.env.config.tableSize - table.countCards();
-        int cards_left_in_deck = deck.size();
-        if(slots_available > 0 && !deck.isEmpty()) {
-            int cards_num = Math.min(slots_available,cards_left_in_deck);
-            List<Integer>   slots = table.getEmptySlots(),
-                    cards = table.getUnassignedCards();
-            Iterator<Integer>   slots_iterator = slots.iterator(),
-                    cards_iterator = cards.iterator();
-            int count_placed = 0;
-            while(slots_iterator.hasNext() && count_placed <= cards_num) {
-                table.placeCard(cards_iterator.next(),slots_iterator.next());
-                count_placed++;
-            }
+        // TODO implement placeCardsOnTable()
 
-        }
+        // int slots_available = this.env.config.tableSize - table.countCards();
+        // int cards_left_in_deck = deck.size();
+        // if(slots_available > 0 && !deck.isEmpty()) {
+        //     int cards_num = Math.min(slots_available,cards_left_in_deck);
+        //     List<Integer>   slots = table.getEmptySlots(),
+        //             cards = table.getUnassignedCards();
+        //     Iterator<Integer>   slots_iterator = slots.iterator(),
+        //             cards_iterator = cards.iterator();
+        //     int count_placed = 0;
+        //     while(slots_iterator.hasNext() && count_placed <= cards_num) {
+        //         table.placeCard(cards_iterator.next(),slots_iterator.next());
+        //         count_placed++;
+        //     }
+        // }
 
     }
 
@@ -129,19 +132,19 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        // TODO implement
-        try {
-            Thread.currentThread().wait(this.env.config.turnTimeoutMillis);
-        } catch (InterruptedException ignored) {
-            //TODO check if need to do anything in case of exception
-        }
+        // TODO implement sleepUntilWokenOrTimeout()
+        // try {
+        //     Thread.currentThread().wait(this.env.config.turnTimeoutMillis);
+        // } catch (InterruptedException ignored) {
+        //     //TODO check if need to do anything in case of exception
+        // }
     }
 
     /**
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        // TODO implement
+        // TODO implement updateTimerDisplay(boolean reset)
         long millies = 0;
         if(reset) {
             time_start = System.currentTimeMillis();
@@ -157,13 +160,37 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement
+        // TODO implement removeAllCardsFromTable()
+        int numCardsOnTable = table.countCards();
+        for(int slot = 0; slot < numCardsOnTable ; slot++) {
+            Integer card = table.slotToCard[slot];
+            table.removeCard(slot);
+            deck.add(card);
+        }
     }
 
     /**
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement
+        // TODO implement announceWinners()
+        int max_score = 0;
+        int numWinners = 0;
+        for(Player player : players) {
+            if(player.score() > max_score) {
+                max_score = player.score();
+                numWinners = 1;
+            }
+            else if(player.score() == max_score) {
+                numWinners++;
+            }
+        }
+        int[] winners = new int[numWinners];
+        for(Player player : players) {
+            if(player.score() == max_score) {
+                winners[--numWinners] = player.id;
+            }
+        }
+        env.ui.announceWinner(winners);
     }
 }
