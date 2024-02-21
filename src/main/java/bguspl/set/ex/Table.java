@@ -90,20 +90,6 @@ public class Table {
     }
 
     /**
-     * @return a list of integers representing all empty slots in the table
-     */
-    public List<Integer> getEmptySlots() {
-        return Arrays.stream(slotToCard).filter(Objects::isNull).collect(Collectors.toList());
-    }
-
-    /**
-     * @return a list of integers representing all empty slots in the table
-     */
-    public List<Integer> getUnassignedCards() {
-        return Arrays.stream(cardToSlot).filter(Objects::isNull).collect(Collectors.toList());
-    }
-
-    /**
      * Places a card on the table in a grid slot.
      * @param card - the card id to place in the slot.
      * @param slot - the slot in which the card should be placed.
@@ -174,6 +160,7 @@ public class Table {
     public boolean hasToken(int player, int slot) {
         return tokens[player][slot];
     }
+
 
 
 }
