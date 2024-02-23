@@ -119,7 +119,7 @@ public class Table {
 
         // TODO implement removeCard(int slot)
         for(int player = 0; player < env.config.players; player++) {
-            this.env.ui.removeToken(player,slot);
+            removeToken(player,slot);
         }
         this.env.ui.removeCard(slot);
         int card = slotToCard[slot];
