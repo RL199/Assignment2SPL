@@ -53,7 +53,11 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-        time_start = System.currentTimeMillis();
+
+        for (Player player : players) {
+            new Thread(player).start();
+        }
+
         while (!shouldFinish()) {
             placeCardsOnTable();
             timerLoop();
@@ -84,6 +88,7 @@ public class Dealer implements Runnable {
         for (Player player : players) {
             player.terminate();
         }
+        terminate = true;
     }
 
     /**
@@ -101,22 +106,19 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         // TODO implement removeCardsFromTable()
         // If there is a set, remove the cards from the set
-        for(int i = 0; i < env.config.players; i++) {
+        for(Player player : players) {
             int[] token_cards = new int[env.config.featureSize];
-            for(int j = 0; j < token_cards.length; j++)
-                token_cards[j] = -1;
 
             int count = 0;
             for(int slot = 0; slot < env.config.tableSize; slot++)
-                if(table.hasToken(i,slot))
+                if(table.hasToken(player.id,slot))
                     token_cards[count++] = table.slotToCard[slot];
-
-            boolean is_a_set = env.util.testSet(token_cards);
-            if(is_a_set) {
+            if(count == env.config.featureSize && env.util.testSet(token_cards)) {
+                player.point();
                 for(Integer card : token_cards) {
-                    if(card > 0) {
-                        System.out.println(card);
+                    if(card >= 0) {
                         table.removeCard(table.cardToSlot[card]);
+                        updateTimerDisplay(true);
                     }
                 }
             }
@@ -129,17 +131,17 @@ public class Dealer implements Runnable {
     private void placeCardsOnTable() {
         // TODO implement placeCardsOnTable()
 
-         int slots_available = this.env.config.tableSize - table.countCards();
+        int slots_available = this.env.config.tableSize - table.countCards();
 
-         if(slots_available > 0 && !deck.isEmpty()) {
-             for (int slot = 0; slot < this.env.config.tableSize; slot++) {
-                 if (table.slotToCard[slot] == null) {
+        if(slots_available > 0 && !deck.isEmpty()) {
+            for (int slot = 0; slot < this.env.config.tableSize; slot++) {
+                if (table.slotToCard[slot] == null) {
                      int card_number = (int) (Math.random() * (deck.size()));
-                     int card = deck.remove(card_number);
-                     table.placeCard(card, slot);
-                 }
-             }
-         }
+                    int card = deck.remove(card_number);
+                    table.placeCard(card, slot);
+                }
+            }
+        }
 
 
     }
@@ -149,12 +151,11 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement sleepUntilWokenOrTimeout()
-         try {
-             Thread.currentThread().sleep(this.env.config.turnTimeoutMillis);
-         } catch (InterruptedException ignored) {
-             //TODO check if need to do anything in case of exception
-             System.out.println(ignored.getMessage());
-         }
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException ignored) {
+            System.out.println(ignored.getMessage());
+        }
     }
 
     /**
@@ -162,15 +163,15 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement updateTimerDisplay(boolean reset)
-        long millies = 0;
-        if(reset) {
+        if(reset || reshuffleTime == Long.MAX_VALUE){
             time_start = System.currentTimeMillis();
-            this.env.ui.setCountdown(millies,false);
-        } else {
-            millies = System.currentTimeMillis() - time_start;
-            millies = this.env.config.turnTimeoutMillis - millies;
-            boolean warning = millies <= this.env.config.turnTimeoutWarningMillis;
-            this.env.ui.setCountdown(millies,warning);
+            reshuffleTime = env.config.turnTimeoutMillis + time_start;
+            boolean warning = reshuffleTime - time_start <= this.env.config.turnTimeoutWarningMillis;
+            this.env.ui.setCountdown(reshuffleTime - time_start,warning);
+        }
+        else {
+            boolean warning = reshuffleTime - System.currentTimeMillis() <= this.env.config.turnTimeoutWarningMillis;
+            this.env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),warning);
         }
     }
 
