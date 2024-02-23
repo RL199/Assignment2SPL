@@ -94,7 +94,6 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO implement run() main player loop
-
             // The player thread consumes the actions from the queue, placing or removing a token in the
             // corresponding slot in the grid on the table.
             // Once the player places his third token on the table, he must notify the dealer and wait until the
@@ -111,11 +110,9 @@ public class Player implements Runnable {
                     this.countTokens++;
                 }
                 if(this.countTokens == 3){
-                    this.notifyAll();
+                    // Thread.currentThread().notifyAll();
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            } catch (InterruptedException e) {}
         }
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -151,10 +148,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement terminate()
-        if(!human){
-            aiThread.interrupt();
-        }
-        playerThread.interrupt();
+        terminate = true;
     }
 
     /**
@@ -166,9 +160,7 @@ public class Player implements Runnable {
         // TODO implement keyPressed(int slot)
         try {
             actions.put(slot);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        } catch (InterruptedException e) {}
     }
 
     /**
@@ -179,16 +171,12 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement point()
-        try {
-            this.score++;
-            this.env.ui.setScore(this.id, this.score);
-            Thread.sleep(this.env.config.pointFreezeMillis);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        try {
+            Thread.sleep(this.env.config.pointFreezeMillis);
+        } catch (InterruptedException e) {}
     }
 
     /**
@@ -199,9 +187,7 @@ public class Player implements Runnable {
         try {
             Thread.sleep(this.env.config.penaltyFreezeMillis);
             this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        } catch (InterruptedException e) {}
     }
 
     public int score() {
