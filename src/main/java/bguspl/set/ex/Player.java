@@ -65,6 +65,16 @@ public class Player implements Runnable {
     private int countTokens;
 
     /**
+     * The Dealer object.
+     */
+    private final Dealer dealer;
+
+    /**
+     * The start time when the player was frozen.
+     */
+//    private long startedFrozenTime;
+
+    /**
      * The class constructor.
      *
      * @param env    - the environment object.
@@ -81,6 +91,7 @@ public class Player implements Runnable {
 
         this.countTokens = 0;
         this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize);
+        this.dealer = dealer;
     }
 
     /**
@@ -91,8 +102,9 @@ public class Player implements Runnable {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         if (!human) createArtificialIntelligence();
-
+        System.out.println("Player " + this.id + " started");
         while (!terminate) {
+
             // TODO implement run() main player loop
             // The player thread consumes the actions from the queue, placing or removing a token in the
             // corresponding slot in the grid on the table.
@@ -101,6 +113,7 @@ public class Player implements Runnable {
             // accordingly.
             try{
                 int slot = actions.take();
+                System.out.println("Player " + this.id + " took action " + slot);
                 if(table.hasToken(this.id, slot)){
                     table.removeToken(this.id, slot);
                     this.countTokens--;
@@ -110,7 +123,14 @@ public class Player implements Runnable {
                     this.countTokens++;
                 }
                 if(this.countTokens == 3){
-                    // Thread.currentThread().notifyAll();
+                    this.countTokens = 0;
+//                    synchronized (dealer) {
+//                        dealer.notifyAll();
+//                    }
+//                    synchronized (this) {
+//                        wait();
+//                    }
+
                 }
             } catch (InterruptedException e) {}
         }
@@ -158,9 +178,13 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement keyPressed(int slot)
-        try {
-            actions.put(slot);
-        } catch (InterruptedException e) {}
+//        if(startedFrozenTime < 0) {
+            try {
+                actions.put(slot);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+//        }
     }
 
     /**
@@ -174,9 +198,9 @@ public class Player implements Runnable {
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-        try {
-            Thread.sleep(this.env.config.pointFreezeMillis);
-        } catch (InterruptedException e) {}
+//        try {
+//            Thread.sleep(this.env.config.pointFreezeMillis);
+//        } catch (InterruptedException e) {}
     }
 
     /**
@@ -184,13 +208,22 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement penalty()
+        this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
         try {
-            Thread.sleep(this.env.config.penaltyFreezeMillis);
-            this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
-        } catch (InterruptedException e) {}
+            long timeToSleep = this.env.config.penaltyFreezeMillis;
+            while(timeToSleep >= 1000) {
+                timeToSleep -= 1000;
+                Thread.sleep(1000);
+                this.env.ui.setFreeze(id, timeToSleep);
+            }
+        } catch (InterruptedException ignored) {}
+
+        this.env.ui.setFreeze(id, 0);
     }
 
     public int score() {
         return score;
     }
+
+
 }

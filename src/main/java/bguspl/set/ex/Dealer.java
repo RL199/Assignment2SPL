@@ -38,7 +38,10 @@ public class Dealer implements Runnable {
     private long reshuffleTime = Long.MAX_VALUE;
 
     /* ------------------------------ Added fields ------------------------------ */
-    private long time_start;
+    /**
+     * The time when the dealer started the game.
+     */
+//    private long time_start;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -75,9 +78,11 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
+
             removeCardsFromTable();
             placeCardsOnTable();
         }
+        updateTimerDisplay(true); // Eden added
     }
 
     /**
@@ -106,21 +111,33 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         // TODO implement removeCardsFromTable()
         // If there is a set, remove the cards from the set
-        for(Player player : players) {
+        for(final Player player : players) {
             int[] token_cards = new int[env.config.featureSize];
 
             int count = 0;
             for(int slot = 0; slot < env.config.tableSize; slot++)
                 if(table.hasToken(player.id,slot))
                     token_cards[count++] = table.slotToCard[slot];
-            if(count == env.config.featureSize && env.util.testSet(token_cards)) {
-                player.point();
-                for(Integer card : token_cards) {
-                    if(card >= 0) {
-                        table.removeCard(table.cardToSlot[card]);
-                        updateTimerDisplay(true);
+            if(count == env.config.featureSize) {
+                if( env.util.testSet(token_cards)) {
+                    player.point();
+                    System.out.println("Player " + player.id + " has a set!");
+                    for (Integer card : token_cards) {
+                        if (card >= 0) {
+                            table.removeCard(table.cardToSlot[card]);
+                            updateTimerDisplay(true);
+                        }
                     }
                 }
+                else {
+                    player.penalty();
+                    System.out.println("Player " + player.id + " has no set!");
+
+                }
+                table.clearTokens(player.id);
+//                synchronized (player) {
+//                    player.notify();
+//                }
             }
         }
     }
@@ -163,15 +180,18 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement updateTimerDisplay(boolean reset)
-        if(reset || reshuffleTime == Long.MAX_VALUE){
-            time_start = System.currentTimeMillis();
-            reshuffleTime = env.config.turnTimeoutMillis + time_start;
-            boolean warning = reshuffleTime - time_start <= this.env.config.turnTimeoutWarningMillis;
-            this.env.ui.setCountdown(reshuffleTime - time_start,warning);
+        // For every time, currTime < reshuffleTime
+        boolean warning;
+        long currTime = 0;
+        if(reset || reshuffleTime == Long.MAX_VALUE) {
+//            time_start = currTime;
+            reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
+            this.env.ui.setCountdown( env.config.turnTimeoutMillis,false);
         }
         else {
-            boolean warning = reshuffleTime - System.currentTimeMillis() <= this.env.config.turnTimeoutWarningMillis;
-            this.env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),warning);
+            long time = reshuffleTime - System.currentTimeMillis();
+            warning = time <= this.env.config.turnTimeoutWarningMillis;
+            this.env.ui.setCountdown(time,warning);
         }
     }
 
