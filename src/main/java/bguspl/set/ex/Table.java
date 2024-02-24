@@ -161,6 +161,17 @@ public class Table {
         return tokens[player][slot];
     }
 
+    /**
+     * Clears all tokens of a player from the table.
+     * @param player - the player whose tokens should be removed.
+     */
+    public void clearTokens(int player) {
+        for(int i = 0; i < env.config.tableSize; i++) {
+            if(tokens[player][i]) {
+                removeToken(player,i);
+            }
+        }
+    }
 
 
 }
