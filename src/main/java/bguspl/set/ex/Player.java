@@ -72,7 +72,7 @@ public class Player implements Runnable {
     /**
      * The start time when the player was frozen.
      */
-    private long startedFrozenTime;
+//    private long startedFrozenTime;
 
     /**
      * The class constructor.
@@ -124,12 +124,12 @@ public class Player implements Runnable {
                 }
                 if(this.countTokens == 3){
                     this.countTokens = 0;
-                    synchronized (dealer) {
-                        dealer.notifyAll();
-                    }
-                    synchronized (this) {
-                        wait();
-                    }
+//                    synchronized (dealer) {
+//                        dealer.notifyAll();
+//                    }
+//                    synchronized (this) {
+//                        wait();
+//                    }
 
                 }
             } catch (InterruptedException e) {}
@@ -178,13 +178,13 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement keyPressed(int slot)
-        if(startedFrozenTime < 0) {
+//        if(startedFrozenTime < 0) {
             try {
                 actions.put(slot);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
+//        }
     }
 
     /**
@@ -208,25 +208,22 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement penalty()
-
         this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
         try {
-            Thread.sleep(this.env.config.penaltyFreezeMillis);
+            long timeToSleep = this.env.config.penaltyFreezeMillis;
+            while(timeToSleep >= 1000) {
+                timeToSleep -= 1000;
+                Thread.sleep(1000);
+                this.env.ui.setFreeze(id, timeToSleep);
+            }
         } catch (InterruptedException ignored) {}
 
-        startedFrozenTime = System.currentTimeMillis();
+        this.env.ui.setFreeze(id, 0);
     }
 
     public int score() {
         return score;
     }
 
-    public long getStartedFrozenTime() {
-        return startedFrozenTime;
-    }
-
-    public void setStartedFrozenTime(long startedFrozenTime) {
-        this.startedFrozenTime = startedFrozenTime;
-    }
 
 }

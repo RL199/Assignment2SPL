@@ -78,7 +78,7 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
-            updateFreeze();
+
             removeCardsFromTable();
             placeCardsOnTable();
         }
@@ -135,9 +135,9 @@ public class Dealer implements Runnable {
 
                 }
                 table.clearTokens(player.id);
-                synchronized (player) {
-                    player.notify();
-                }
+//                synchronized (player) {
+//                    player.notify();
+//                }
             }
         }
     }
@@ -193,30 +193,6 @@ public class Dealer implements Runnable {
             warning = time <= this.env.config.turnTimeoutWarningMillis;
             this.env.ui.setCountdown(time,warning);
         }
-    }
-
-    /**
-     * Update the freeze display.
-     */
-    public void updateFreeze() {
-        for(final Player player: players) {
-            if(player.getStartedFrozenTime() < 0)
-                continue;
-            long timePassed = System.currentTimeMillis() - player.getStartedFrozenTime();
-            long penalty = this.env.config.penaltyFreezeMillis;
-            if(timePassed > penalty) {
-                player.setStartedFrozenTime(-1);
-                this.env.ui.setFreeze(player.id,0);
-                synchronized (player) {
-                    player.notify();
-                }
-            }
-            else {
-                this.env.ui.setFreeze(player.id,penalty - timePassed);
-            }
-
-        }
-
     }
 
     /**
