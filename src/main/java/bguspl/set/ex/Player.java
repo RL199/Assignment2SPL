@@ -70,6 +70,11 @@ public class Player implements Runnable {
     private final Dealer dealer;
 
     /**
+     * The time the ai thread is sleeping.
+     */
+    private long aiSleepingTime = 10;
+
+    /**
      * The start time when the player was frozen.
      */
 //    private long startedFrozenTime;
@@ -124,12 +129,18 @@ public class Player implements Runnable {
                 }
                 if(this.countTokens == 3){
                     this.countTokens = 0;
-//                    synchronized (dealer) {
-//                        dealer.notifyAll();
-//                    }
-//                    synchronized (this) {
-//                        wait();
-//                    }
+                    synchronized (dealer) {
+                        dealer.notifyAll();
+                    }
+                    synchronized (this) {
+                        try {
+                            if(!human)
+                                aiThread.wait();
+                            this.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
                 }
             } catch (InterruptedException e) {}
@@ -154,9 +165,9 @@ public class Player implements Runnable {
                 int randomSlot = (int) (Math.random() * this.table.countCards());
                 keyPressed(randomSlot);
 
-                try {
-                    synchronized (this) { wait(); }
-                } catch (InterruptedException ignored) {}
+                // try {
+                //     synchronized (this) { Thread.sleep(aiSleepingTime); }
+                // } catch (InterruptedException ignored) {}
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
