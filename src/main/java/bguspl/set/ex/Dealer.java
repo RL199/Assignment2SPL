@@ -38,6 +38,12 @@ public class Dealer implements Runnable {
     private long reshuffleTime = Long.MAX_VALUE;
 
     /* ------------------------------ Added fields ------------------------------ */
+
+    /**
+     * The time when the dealer thread wakes up.
+     */
+    private long dealerWakeUpTime = 10;
+
     /**
      * The time when the dealer started the game.
      */
@@ -82,7 +88,7 @@ public class Dealer implements Runnable {
             removeCardsFromTable();
             placeCardsOnTable();
         }
-        updateTimerDisplay(true); // Eden added
+        updateTimerDisplay(true);
     }
 
     /**
@@ -135,9 +141,9 @@ public class Dealer implements Runnable {
 
                 }
                 table.clearTokens(player.id);
-//                synchronized (player) {
-//                    player.notify();
-//                }
+                synchronized (player) {
+                    player.notifyAll();
+                }
             }
         }
     }
@@ -168,10 +174,12 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement sleepUntilWokenOrTimeout()
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException ignored) {
-            System.out.println(ignored.getMessage());
+        synchronized (this) {
+            try {
+                this.wait(dealerWakeUpTime);
+            } catch (InterruptedException ignored) {
+                System.out.println(ignored.getMessage());
+            }
         }
     }
 
@@ -182,11 +190,13 @@ public class Dealer implements Runnable {
         // TODO implement updateTimerDisplay(boolean reset)
         // For every time, currTime < reshuffleTime
         boolean warning;
-        long currTime = 0;
+        // long currTime = 0;
         if(reset || reshuffleTime == Long.MAX_VALUE) {
 //            time_start = currTime;
             reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
-            this.env.ui.setCountdown( env.config.turnTimeoutMillis,false);
+            long time = reshuffleTime - System.currentTimeMillis();
+            warning = time <= this.env.config.turnTimeoutWarningMillis;
+            this.env.ui.setCountdown( env.config.turnTimeoutMillis,warning);
         }
         else {
             long time = reshuffleTime - System.currentTimeMillis();
