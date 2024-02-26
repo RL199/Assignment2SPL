@@ -4,6 +4,7 @@ import bguspl.set.Env;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Semaphore;
 
 /**
  * This class manages the players' threads and data
@@ -72,12 +73,7 @@ public class Player implements Runnable {
     /**
      * The time the ai thread is sleeping.
      */
-    private long aiSleepingTime = 10;
-
-    /**
-     * The start time when the player was frozen.
-     */
-//    private long startedFrozenTime;
+    private long aiSleepingTime = 10; //TODO ???
 
     /**
      * The class constructor.
@@ -128,10 +124,15 @@ public class Player implements Runnable {
                     this.countTokens++;
                 }
                 if(this.countTokens == 3){
-                    this.countTokens = 0;
-                    synchronized (dealer) {
-                        dealer.notifyAll();
+                    dealer.notifyPlayerHasSet(id);
+//                    dealer.setHasSet(true); //notify the dealer there are three cards
+                    synchronized (this) {
+//                        dealer.checkIfSet(this.id); //check if the set is legal
+                        this.wait();
                     }
+                    this.countTokens = 0;
+                    table.clearTokens(this.id);
+                    /*
                     synchronized (this) {
                         try {
                             if(!human)
@@ -140,8 +141,7 @@ public class Player implements Runnable {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                    }
-
+                    }*/
                 }
             } catch (InterruptedException e) {}
         }
@@ -172,6 +172,7 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
         aiThread.start();
+
     }
 
     /**
@@ -189,13 +190,13 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement keyPressed(int slot)
-//        if(startedFrozenTime < 0) {
-            try {
-                actions.put(slot);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-//        }
+        try {
+            actions.put(slot);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     /**
@@ -209,9 +210,12 @@ public class Player implements Runnable {
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-//        try {
-//            Thread.sleep(this.env.config.pointFreezeMillis);
-//        } catch (InterruptedException e) {}
+        try {
+            Thread.sleep(this.env.config.pointFreezeMillis);
+        } catch (InterruptedException ignored1) {}
+        synchronized (this) {
+            this.notify();
+        }
     }
 
     /**
@@ -219,7 +223,9 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement penalty()
+        System.out.println("panelty");
         this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
+
         try {
             long timeToSleep = this.env.config.penaltyFreezeMillis;
             while(timeToSleep >= 1000) {
@@ -230,6 +236,9 @@ public class Player implements Runnable {
         } catch (InterruptedException ignored) {}
 
         this.env.ui.setFreeze(id, 0);
+        synchronized (this) {
+            this.notify();
+        }
     }
 
     public int score() {

@@ -3,6 +3,8 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -44,16 +46,26 @@ public class Dealer implements Runnable {
      */
     private long dealerWakeUpTime = 10;
 
-    /**
-     * The time when the dealer started the game.
-     */
-//    private long time_start;
+    private BlockingQueue<Player> playersWithSets;
+
+    //Queue for cards to be removed
+    private BlockingQueue<Integer> cardsToRemove;
+
+    //Queue for empty slots
+    private BlockingQueue<Integer> emptySlots;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+
+        this.playersWithSets = new ArrayBlockingQueue<>(this.players.length);
+        //TODO perhaps change capacity of queue
+        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.tableSize);
+        this.emptySlots = new ArrayBlockingQueue<>(env.config.tableSize);
+        //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
+        this.hasSets = false;
     }
 
     /**
@@ -77,6 +89,16 @@ public class Dealer implements Runnable {
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
+
+    public void notifyPlayerHasSet(int player_id) {
+        hasSets = true;
+        try {
+            playersWithSets.put(players[player_id]);
+        } catch (InterruptedException ignored) {}
+    }
+
+    private boolean hasSets;
+
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
@@ -85,8 +107,26 @@ public class Dealer implements Runnable {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
 
+            try {
+                if(hasSets) {
+                    Player player = playersWithSets.take();
+                    int player_id = player.id;
+                    int[] playerTokenCards = getPlayerTokenCards(player_id);
+                    if (checkIfSet(player_id, playerTokenCards))
+                        handlePlayerPoint(player);
+                    else
+                        handlePlayerPenalty(player);
+                    for(int token : playerTokenCards)
+                        cardsToRemove.put(token);
+                    /*
+                    List<Integer> tokensList = Arrays.stream(playerTokenCards).boxed().collect(Collectors.toList()); //converts playerTokenCards (array of int-s) to a List of Integer
+                    cardsToRemove.addAll(tokensList);*/
+                }
+            } catch (InterruptedException ignored) {}
+
             removeCardsFromTable();
             placeCardsOnTable();
+            hasSets = !(playersWithSets.isEmpty());
         }
         updateTimerDisplay(true);
     }
@@ -111,12 +151,28 @@ public class Dealer implements Runnable {
         return terminate || env.util.findSets(deck, 1).size() == 0;
     }
 
+    private int[] getPlayerTokenCards(int player) {
+        int[] token_cards = new int[env.config.featureSize];
+
+        int count = 0;
+        for(int slot = 0; slot < env.config.tableSize; slot++)
+            if(table.hasToken(player,slot))
+                token_cards[count++] = table.slotToCard[slot];
+
+        return token_cards;
+    }
+
+    private boolean checkIfSet(int player, int[] token_cards) {
+        return token_cards.length == env.config.featureSize && env.util.testSet(token_cards);
+    }
+
     /**
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
+        if(cardsToRemove.isEmpty()) return;
         // TODO implement removeCardsFromTable()
-        // If there is a set, remove the cards from the set
+        /*// If there is a set, remove the cards from the set
         for(final Player player : players) {
             int[] token_cards = new int[env.config.featureSize];
 
@@ -125,27 +181,41 @@ public class Dealer implements Runnable {
                 if(table.hasToken(player.id,slot))
                     token_cards[count++] = table.slotToCard[slot];
             if(count == env.config.featureSize) {
-                if( env.util.testSet(token_cards)) {
-                    player.point();
-                    System.out.println("Player " + player.id + " has a set!");
-                    for (Integer card : token_cards) {
-                        if (card >= 0) {
-                            table.removeCard(table.cardToSlot[card]);
-                            updateTimerDisplay(true);
-                        }
-                    }
-                }
-                else {
-                    player.penalty();
-                    System.out.println("Player " + player.id + " has no set!");
+
+
+                    if( env.util.testSet(token_cards))
+                        handlePlayerPoint(player);
+                    else
+                        handlePlayerPenalty(player);
+
+                    table.clearTokens(player.id);
+                synchronized (player) { //lock the player
+                    player.notify();
 
                 }
-                table.clearTokens(player.id);
-                synchronized (player) {
-                    player.notifyAll();
-                }
             }
-        }
+        }*/
+
+        // New approach: take out things from cardsToRemove and remove the cards
+        try {
+            int card = cardsToRemove.take();
+            int slot = table.cardToSlot[card];
+            System.out.println("card"+card);
+            table.removeCard(slot);
+            emptySlots.put(slot);
+        } catch (InterruptedException ignored) {}
+    }
+
+    private void handlePlayerPoint(final Player player) {
+        player.point();
+
+        System.out.println("Player " + player.id + " has a set!");
+
+    }
+
+    private void handlePlayerPenalty(final Player player) {
+        player.penalty();
+        System.out.println("Player " + player.id + " has no set!");
     }
 
     /**
