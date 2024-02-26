@@ -122,9 +122,11 @@ public class Table {
             removeToken(player,slot);
         }
         this.env.ui.removeCard(slot);
-        int card = slotToCard[slot];
-        slotToCard[slot] = null;
-        cardToSlot[card] = null;
+        if(slotToCard[slot] != null) {
+            int card = slotToCard[slot];
+            slotToCard[slot] = null;
+            cardToSlot[card] = null;
+        }
     }
 
     /**
@@ -157,8 +159,8 @@ public class Table {
     /**
      * checks if a token of a player is placed on a grid slot.
      */
-    public boolean hasToken(int player, int slot) {
-        return tokens[player][slot];
+    public boolean hasToken(int player_id, int slot) {
+        return tokens[player_id][slot];
     }
 
     /**
