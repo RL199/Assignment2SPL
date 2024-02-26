@@ -167,6 +167,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement terminate()
+        System.out.println("in player terminate()");
         terminate = true;
         if(!human){
             try{
@@ -175,6 +176,7 @@ public class Player implements Runnable {
             }
             catch (InterruptedException ignored) {}
         }
+        System.out.println("finished player terminate()");
     }
 
     /**
