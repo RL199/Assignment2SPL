@@ -112,7 +112,7 @@ public class Dealer implements Runnable {
                     Player player = playersWithSets.take();
                     int player_id = player.id;
                     int[] playerTokenCards = getPlayerTokenCards(player_id);
-                    if (checkIfSet(player_id, playerTokenCards))
+                    if (checkIfSet(playerTokenCards))
                         handlePlayerPoint(player);
                     else
                         handlePlayerPenalty(player);
@@ -162,7 +162,7 @@ public class Dealer implements Runnable {
         return token_cards;
     }
 
-    private boolean checkIfSet(int player, int[] token_cards) {
+    private boolean checkIfSet(int[] token_cards) {
         return token_cards.length == env.config.featureSize && env.util.testSet(token_cards);
     }
 
@@ -251,6 +251,10 @@ public class Dealer implements Runnable {
                 System.out.println(ignored.getMessage());
             }
         }
+    }
+
+    public void updateTimerDisplayWrapper() {
+        updateTimerDisplay(false);
     }
 
     /**

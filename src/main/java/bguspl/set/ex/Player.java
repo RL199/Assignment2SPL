@@ -212,6 +212,7 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         try {
             Thread.sleep(this.env.config.pointFreezeMillis);
+            dealer.updateTimerDisplayWrapper();
         } catch (InterruptedException ignored1) {}
         synchronized (this) {
             this.notify();
@@ -231,6 +232,7 @@ public class Player implements Runnable {
             while(timeToSleep >= 1000) {
                 timeToSleep -= 1000;
                 Thread.sleep(1000);
+                dealer.updateTimerDisplayWrapper();
                 this.env.ui.setFreeze(id, timeToSleep);
             }
         } catch (InterruptedException ignored) {}
