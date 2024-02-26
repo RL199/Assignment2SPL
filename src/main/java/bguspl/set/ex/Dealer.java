@@ -90,6 +90,7 @@ public class Dealer implements Runnable {
             removeAllCardsFromTable();
         }
         announceWinners();
+        terminate();
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -133,15 +134,17 @@ public class Dealer implements Runnable {
         // TODO implement terminate()
         //Terminate all player threads in reverse order
 
+        System.out.println("in dealer terminate()");
         for (int i = env.config.players - 1; i >= 0; i--) {
             Player player = players[i];
             player.terminate();
             try {
-                playerThreads[player.id].interrupt();
-                playerThreads[player.id].join();
+                playerThreads[i].interrupt();
+                playerThreads[i].join();
             } catch (InterruptedException ignored) {}
         }
         terminate = true;
+        System.out.println("finished dealer terminate()");
     }
 
     /**
