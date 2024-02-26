@@ -18,8 +18,12 @@ We are not entitled to this bonus.
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-We are not entitled to this bonus.
-
+1. In player class, we used the interrupt and join functions to terminate gracefully the ai threads.
+In dealer class, we used the interrupt and join functions to terminate gracefully the player threads.
+In dealer class, we terminated the player threads in reverse order to the order they were created in,
+by calling the terminate method of the players.
+2. It was used in Player class in the terminate method and in Dealer class in the terminate method.
+3. We checked the log file to see that the threads were closing gracefully and in reverse order.
 --------------------
 
 3. Handling the config.turnTimeoutMillis value as follows:
