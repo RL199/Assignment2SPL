@@ -119,7 +119,7 @@ public class Player implements Runnable {
                     this.countTokens++;
                 }
                 if(this.countTokens == 3){
-                    dealer.notifyPlayerHas3Tokens(id);
+                    dealer.notifyPlayerHasPotSet(id);
                     synchronized (this) {
                         //TODO: use flag instead of wait
                         this.wait();
@@ -203,7 +203,7 @@ public class Player implements Runnable {
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-       /* this.env.ui.setFreeze(id, this.env.config.pointFreezeMillis);
+        /* this.env.ui.setFreeze(id, this.env.config.pointFreezeMillis);
         try {
             freezeTime = this.env.config.pointFreezeMillis;
             while(freezeTime >= sleepFreezeTimeInterval) {

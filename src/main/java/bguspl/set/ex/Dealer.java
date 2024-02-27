@@ -46,16 +46,17 @@ public class Dealer implements Runnable {
      */
     private long dealerWakeUpTime = 10;
 
-    private BlockingQueue<Player> playersWith3Tokens;
+    //Queue for players with potential set
+    private BlockingQueue<Player> playersWithPotSet;
 
     //Queue for cards to be removed
     private BlockingQueue<Integer> cardsToRemove;
 
-    //Boolean to check if there are 3 tokens
-    private boolean has3Tokens;
-    
+    //Boolean to check if there is a potential set
+    private boolean hasPotSet;
+
     private BlockingQueue<Player> players_asleep;
-    
+
     //Array of player threads
     private Thread[] playerThreads;
 
@@ -65,11 +66,11 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
-        this.playersWith3Tokens = new ArrayBlockingQueue<>(this.players.length);
+        this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length);
         //TODO perhaps change capacity of queue
         this.cardsToRemove = new ArrayBlockingQueue<>(env.config.tableSize);
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
-        this.has3Tokens = false;
+        this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
         this.players_asleep = new ArrayBlockingQueue<>(env.config.players);
     }
@@ -106,8 +107,8 @@ public class Dealer implements Runnable {
             updateTimerDisplay(false);
 
             try {
-                if(has3Tokens) {
-                    Player player = playersWith3Tokens.take();
+                if(hasPotSet) {
+                    Player player = playersWithPotSet.take();
                     int player_id = player.id;
                     int[] playerTokenCards = getPlayerTokenCards(player_id);
                     if (checkIfSet(playerTokenCards)){
@@ -124,7 +125,7 @@ public class Dealer implements Runnable {
 
             removeCardsFromTable();
             placeCardsOnTable();
-            has3Tokens = !(playersWith3Tokens.isEmpty());
+            hasPotSet = !(playersWithPotSet.isEmpty());
         }
         if(System.currentTimeMillis() >= reshuffleTime)
             updateTimerDisplay(true);
@@ -211,7 +212,7 @@ public class Dealer implements Runnable {
         try {
             players_asleep.put(player);
         } catch (InterruptedException ignored) {}
-        
+
         System.out.println("Player " + player.id + " has no set!");
     }
 
@@ -259,7 +260,7 @@ public class Dealer implements Runnable {
      * The time interval for the sleep method when freezing the player.
      */
     private long sleepFreezeTimeInterval = 900;
-    
+
     /**
      * Reset and/or update the countdown and the countdown display.
      */
@@ -272,7 +273,7 @@ public class Dealer implements Runnable {
         long time = reshuffleTime - System.currentTimeMillis();
         boolean warning = time <= this.env.config.turnTimeoutWarningMillis;
         this.env.ui.setCountdown(time,warning);
-        
+
         //Players timer
 //        BlockingQueue<Player> tmp_players_asleep = new ArrayBlockingQueue<>(players_asleep.size());
         if(!players_asleep.isEmpty())
@@ -344,10 +345,10 @@ public class Dealer implements Runnable {
      * @param player_id - the id of the player that has set a set.
      * @throws InterruptedException - if the thread is interrupted.
      */
-    public void notifyPlayerHas3Tokens(int player_id) {
-        has3Tokens = true;
+    public void notifyPlayerHasPotSet(int player_id) {
+        hasPotSet = true;
         try {
-            playersWith3Tokens.put(players[player_id]);
+            playersWithPotSet.put(players[player_id]);
         } catch (InterruptedException ignored) {}
     }
 
