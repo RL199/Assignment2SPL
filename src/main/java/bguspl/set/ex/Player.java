@@ -4,7 +4,6 @@ import bguspl.set.Env;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Semaphore;
 
 /**
  * This class manages the players' threads and data
@@ -71,9 +70,17 @@ public class Player implements Runnable {
     private final Dealer dealer;
 
     /**
-     * The time the ai thread is sleeping.
+     * The time when the player needs to be frozen.
      */
-    private long aiSleepingTime = 10; //TODO ???
+    private long freezeTime = 0;
+
+    /**
+     * The time interval for the sleep method when freezing the player.
+     */
+    private long sleepFreezeTimeInterval = 1000;
+
+
+
 
     /**
      * The class constructor.
@@ -107,14 +114,9 @@ public class Player implements Runnable {
         while (!terminate) {
 
             // TODO implement run() main player loop
-            // The player thread consumes the actions from the queue, placing or removing a token in the
-            // corresponding slot in the grid on the table.
-            // Once the player places his third token on the table, he must notify the dealer and wait until the
-            // dealer checks if it is a legal set or not. The dealer then gives him either a point or a penalty
-            // accordingly.
             try{
                 int slot = actions.take();
-                System.out.println("Player " + this.id + " took action " + slot);
+                System.out.println("Player " + this.id + " took action on slot " + slot);
                 if(table.hasToken(this.id, slot)){
                     table.removeToken(this.id, slot);
                     this.countTokens--;
@@ -124,24 +126,13 @@ public class Player implements Runnable {
                     this.countTokens++;
                 }
                 if(this.countTokens == 3){
-                    dealer.notifyPlayerHasSet(id);
-//                    dealer.setHasSet(true); //notify the dealer there are three cards
+                    dealer.notifyPlayerHas3Tokens(id);
                     synchronized (this) {
-//                        dealer.checkIfSet(this.id); //check if the set is legal
+                        //TODO: use flag instead of wait
                         this.wait();
                     }
                     this.countTokens = 0;
                     table.clearTokens(this.id);
-                    /*
-                    synchronized (this) {
-                        try {
-                            if(!human)
-                                aiThread.wait();
-                            this.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }*/
                 }
             } catch (InterruptedException e) {}
         }
@@ -162,12 +153,8 @@ public class Player implements Runnable {
                 // TODO implement createArtificialIntelligence() player key press simulator
                 // The AI thread generates a random slot.
 
-                int randomSlot = (int) (Math.random() * this.table.countCards());
+                int randomSlot = (int) (Math.random() * this.env.config.tableSize);
                 keyPressed(randomSlot);
-
-                // try {
-                //     synchronized (this) { Thread.sleep(aiSleepingTime); }
-                // } catch (InterruptedException ignored) {}
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -180,7 +167,16 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement terminate()
+        System.out.println("in player terminate()");
         terminate = true;
+        if(!human){
+            try{
+                aiThread.interrupt();
+                aiThread.join();
+            }
+            catch (InterruptedException ignored) {}
+        }
+        System.out.println("finished player terminate()");
     }
 
     /**
@@ -190,13 +186,11 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement keyPressed(int slot)
-        try {
-            actions.put(slot);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if(freezeTime <= 0 && table.slotToCard[slot] != null){
+            try {
+                actions.put(slot);
+            } catch (InterruptedException ignored) {}
         }
-
-
     }
 
     /**
@@ -207,13 +201,21 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement point()
+        System.out.println("point");
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        this.env.ui.setFreeze(id, this.env.config.pointFreezeMillis);
         try {
-            Thread.sleep(this.env.config.pointFreezeMillis);
-            dealer.updateTimerDisplayWrapper();
+            freezeTime = this.env.config.pointFreezeMillis;
+            while(freezeTime >= sleepFreezeTimeInterval) {
+                this.env.ui.setFreeze(id, freezeTime);
+                freezeTime -= sleepFreezeTimeInterval;
+                Thread.sleep(sleepFreezeTimeInterval);
+                dealer.updateTimerDisplayWrapper();
+            }
         } catch (InterruptedException ignored1) {}
+        this.env.ui.setFreeze(id, 0);
         synchronized (this) {
             this.notify();
         }
@@ -228,12 +230,13 @@ public class Player implements Runnable {
         this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
 
         try {
-            long timeToSleep = this.env.config.penaltyFreezeMillis;
-            while(timeToSleep >= 1000) {
-                timeToSleep -= 1000;
-                Thread.sleep(1000);
+            freezeTime = this.env.config.penaltyFreezeMillis;
+            while(freezeTime >= sleepFreezeTimeInterval) {
+                this.env.ui.setFreeze(id, freezeTime);
+                freezeTime -= sleepFreezeTimeInterval;
+                Thread.sleep(sleepFreezeTimeInterval);
+                //TODO: return to dealer function
                 dealer.updateTimerDisplayWrapper();
-                this.env.ui.setFreeze(id, timeToSleep);
             }
         } catch (InterruptedException ignored) {}
 
