@@ -53,9 +53,11 @@ public class Dealer implements Runnable {
 
     //Boolean to check if there are 3 tokens
     private boolean has3Tokens;
-
+    
+    private BlockingQueue<Player> players_asleep;
+    
     //Array of player threads
-    Thread[] playerThreads;
+    private Thread[] playerThreads;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -69,6 +71,7 @@ public class Dealer implements Runnable {
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         this.has3Tokens = false;
         this.playerThreads = new Thread[env.config.players];
+        this.players_asleep = new ArrayBlockingQueue<>(env.config.players);
     }
 
     /**
@@ -196,13 +199,19 @@ public class Dealer implements Runnable {
 
     private void handlePlayerPoint(final Player player) {
         player.point();
-
+        try {
+            players_asleep.put(player);
+        } catch (InterruptedException ignored) {}
         System.out.println("Player " + player.id + " has a set!");
 
     }
 
     private void handlePlayerPenalty(final Player player) {
         player.penalty();
+        try {
+            players_asleep.put(player);
+        } catch (InterruptedException ignored) {}
+        
         System.out.println("Player " + player.id + " has no set!");
     }
 
@@ -247,6 +256,11 @@ public class Dealer implements Runnable {
     }
 
     /**
+     * The time interval for the sleep method when freezing the player.
+     */
+    private long sleepFreezeTimeInterval = 900;
+    
+    /**
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
@@ -254,9 +268,33 @@ public class Dealer implements Runnable {
         if(reset || reshuffleTime == Long.MAX_VALUE) {
             reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
         }
+        //Game timer
         long time = reshuffleTime - System.currentTimeMillis();
         boolean warning = time <= this.env.config.turnTimeoutWarningMillis;
         this.env.ui.setCountdown(time,warning);
+        
+        //Players timer
+//        BlockingQueue<Player> tmp_players_asleep = new ArrayBlockingQueue<>(players_asleep.size());
+        if(!players_asleep.isEmpty())
+            for(final Player player : players_asleep) {
+                long freezeTime = player.getFreezeTime();
+                if(freezeTime >= sleepFreezeTimeInterval) {
+                    //TODO: distinguish between freeze and win
+                    this.env.ui.setFreeze(player.id, freezeTime);
+                    freezeTime -= sleepFreezeTimeInterval;
+                    try {
+                        Thread.sleep(sleepFreezeTimeInterval);
+                    } catch (InterruptedException ignored) {}
+                }
+                else {
+                    this.env.ui.setFreeze(player.id, 0);
+                    freezeTime = 0;
+                    players_asleep.remove(player);
+                }
+
+                player.setFreezeTime(freezeTime);
+
+            }
     }
 
     /**
@@ -271,6 +309,7 @@ public class Dealer implements Runnable {
                 deck.add(card);
             }
         }
+        reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
     }
 
     /**

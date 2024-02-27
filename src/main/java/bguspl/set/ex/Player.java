@@ -74,13 +74,6 @@ public class Player implements Runnable {
      */
     private long freezeTime = 0;
 
-    /**
-     * The time interval for the sleep method when freezing the player.
-     */
-    private long sleepFreezeTimeInterval = 1000;
-
-
-
 
     /**
      * The class constructor.
@@ -134,7 +127,7 @@ public class Player implements Runnable {
                     this.countTokens = 0;
                     table.clearTokens(this.id);
                 }
-            } catch (InterruptedException e) {}
+            } catch (InterruptedException ignored) {}
         }
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -193,6 +186,10 @@ public class Player implements Runnable {
         }
     }
 
+    public void setFreezeTime(long freezeTime) {
+        this.freezeTime = freezeTime;
+    }
+
     /**
      * Award a point to a player and perform other related actions.
      *
@@ -201,11 +198,12 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement point()
+        setFreezeTime(env.config.pointFreezeMillis);
         System.out.println("point");
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
-        this.env.ui.setFreeze(id, this.env.config.pointFreezeMillis);
+       /* this.env.ui.setFreeze(id, this.env.config.pointFreezeMillis);
         try {
             freezeTime = this.env.config.pointFreezeMillis;
             while(freezeTime >= sleepFreezeTimeInterval) {
@@ -215,7 +213,7 @@ public class Player implements Runnable {
                 dealer.updateTimerDisplayWrapper();
             }
         } catch (InterruptedException ignored1) {}
-        this.env.ui.setFreeze(id, 0);
+        this.env.ui.setFreeze(id, 0);*/
         synchronized (this) {
             this.notify();
         }
@@ -226,9 +224,10 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement penalty()
-        System.out.println("panelty");
-        this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
+        setFreezeTime(env.config.penaltyFreezeMillis);
+        System.out.println("penalty");
 
+        /*this.env.ui.setFreeze(id, this.env.config.penaltyFreezeMillis);
         try {
             freezeTime = this.env.config.penaltyFreezeMillis;
             while(freezeTime >= sleepFreezeTimeInterval) {
@@ -239,8 +238,8 @@ public class Player implements Runnable {
                 dealer.updateTimerDisplayWrapper();
             }
         } catch (InterruptedException ignored) {}
+        this.env.ui.setFreeze(id, 0);*/
 
-        this.env.ui.setFreeze(id, 0);
         synchronized (this) {
             this.notify();
         }
@@ -251,4 +250,7 @@ public class Player implements Runnable {
     }
 
 
+    public long getFreezeTime() {
+        return freezeTime;
+    }
 }
