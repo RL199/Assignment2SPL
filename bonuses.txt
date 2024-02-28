@@ -52,4 +52,10 @@ changed on the display, key input needs to be handled, etc.) and the only thread
 We didnt create any more threads, and for each player object it has 1 player thread and 1 aiPlayer thread(if needed).
 When the player thread (including the ai) needed to wait for the dealer and do nothing in the meantime(when the player
 has enough tokens), we used the wait and notify thread functions.
-2. In the Player class: 
+2. In the Player class: when the player has enough tokens, playerThread using wait function to wait for the dealer.
+when the player has enough tokens and is on freeze, the aiThread using wait function.
+In Dealer class: we used the sleep thread function, and we used the notify function to the playerThreads and aiThreads
+when the dealer finished checking their potential sets. We did not create any other thread.
+3. In the debugg menu we tested that there were not any other threads except the ones created from the skeleton files
+and 1 playerThread 1 aiThread for each player. We also tested that the threads were waiting and sleeping when needed
+with debugging.
