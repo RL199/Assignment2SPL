@@ -81,6 +81,14 @@ public class Player implements Runnable {
 
 
 
+    public Thread getAiThread() {
+        return aiThread;
+    }
+
+    public boolean isHuman() {
+        return human;
+    }
+
     /**
      * The class constructor.
      *
@@ -133,14 +141,14 @@ public class Player implements Runnable {
                 }
                 if(this.countTokens == env.config.featureSize){
                     dealer.notifyPlayerHasPotSet(id);
-                    // if(!human){
-                    //     synchronized(aiThread){
-                    //         try{
-                    //             aiThread.wait();
-                    //         }
-                    //         catch (InterruptedException ignored) {}
-                    //     }
-                    // }
+                     if(!human){
+                         synchronized(aiThread){
+                             try{
+                                 aiThread.wait();
+                             }
+                             catch (InterruptedException ignored) {}
+                         }
+                     }
                     synchronized(playerThread){
                         try {
                             playerThread.wait();
@@ -178,7 +186,9 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
         aiThread.start();
-
+        synchronized (dealer) {
+            dealer.notify();
+        }
     }
 
     /**

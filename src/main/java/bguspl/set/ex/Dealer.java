@@ -57,7 +57,8 @@ public class Dealer implements Runnable {
 
     //Array of player threads
     private Thread[] playerThreads;
-
+    //Array of AI threads
+    private Thread[] aiThreads;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -71,6 +72,7 @@ public class Dealer implements Runnable {
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
+        this.aiThreads = new Thread[env.config.players]; //for human players, aiThread = null
     }
 
     /**
@@ -83,6 +85,21 @@ public class Dealer implements Runnable {
             Thread playerThread = new Thread(player);
             playerThreads[player.id] = playerThread;
             playerThread.start();
+
+            if(!player.isHuman()) {
+                synchronized (this) {
+                    while (player.getAiThread() == null) {
+                        System.out.println("null");
+                        try {
+                            this.wait();
+                        } catch (InterruptedException ignored) {
+                        }
+                    }
+                }
+                aiThreads[player.id] = player.getAiThread();
+            }
+            else
+                aiThreads[player.id] = null;
         }
 
         while (!shouldFinish()) {
@@ -196,22 +213,30 @@ public class Dealer implements Runnable {
         } catch (InterruptedException ignored) {}
     }
 
-    private void handlePlayerPoint(final Player player) {
+    private void notifyPlayer(final Player player) {
         //notify the player thread
         synchronized(playerThreads[player.id]) {
             playerThreads[player.id].notify();
+
         }
+        Thread ai = aiThreads[player.id];
+        if(ai != null) {
+            synchronized (ai) {
+                aiThreads[player.id].notify();
+            }
+        }
+    }
+
+    private void handlePlayerPoint(final Player player) {
+        notifyPlayer(player);
         player.point();
         System.out.println("Player " + player.id + " has a set!");
 
     }
 
     private void handlePlayerPenalty(final Player player) {
-        synchronized(playerThreads[player.id]) {
-            playerThreads[player.id].notify();
-        }
+        notifyPlayer(player);
         player.penalty();
-
         System.out.println("Player " + player.id + " has no set!");
     }
 
