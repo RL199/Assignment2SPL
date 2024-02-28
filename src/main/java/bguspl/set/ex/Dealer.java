@@ -256,11 +256,9 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        synchronized (this) {
-            try {
-                this.wait(dealerWakeUpTime);
-            } catch (InterruptedException ignored) {}
-        }
+        try {
+            Thread.sleep(dealerWakeUpTime);
+        } catch (InterruptedException ignored) {}
     }
 
 
