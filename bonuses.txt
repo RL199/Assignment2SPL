@@ -12,17 +12,18 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-1. We supported all the configuration int variables and used them instead of magic numbers.
-We created fields to save numbers like freezeTimeInterval and dealerWakeUpTime instead of magic numbers.
+1. We supported all configuration int variables and used them instead of magic numbers.
+We created fields to save numbers like freezeTimeInterval and dealerWakeUpTime instead of using magic numbers.
 We used featureSize configuration field to adjust the number of cards that require a set.
 To use the hints configuration, we implemented it at every table cards changes.
-2. to use hints, we implemented it in placeCardsOnTable method in Dealer class.
+2. To use hints, we implemented it in placeCardsOnTable method in Dealer class.
 The config field featureSize was used in the size of actions queue in player class,
 aiThread and player runs to check if there are enough tokens. We used it also to
 determine the size of variables in the Dealer class like cardsToRemove queue in the constructor and
 token_cards in getPlayerTokenCards method in Dealer.
-3. We checked the our code that we didnt use magic numbers, and if we did we replaced it
+3. We checked in our code that we don't use magic numbers, and if we have, we replaced it
 with the config fields and class fields.
+
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
@@ -33,6 +34,7 @@ In dealer class, we terminated the player threads in reverse order to the order 
 by calling the terminate method of the players.
 2. It was used in Player class in the terminate method and in Dealer class in the terminate method.
 3. We checked the log file to see that the threads were closing gracefully and in reverse order.
+
 --------------------
 
 3. Handling the config.turnTimeoutMillis value as follows:
@@ -48,7 +50,7 @@ We are not entitled to this bonus.
 changed on the display, key input needs to be handled, etc.) and the only threads created by you are:
 1 thread per player + 1 additional thread for non-human players.
 
-1. We used only the dealer, player and aiPlayer Threads that already been created for us in the skeleton files.
+1. We used only the dealer, player and aiPlayer threads that already been created for us in the skeleton files.
 We didnt create any more threads, and for each player object it has 1 player thread and 1 aiPlayer thread(if needed).
 When the player thread (including the ai) needed to wait for the dealer and do nothing in the meantime(when the player
 has enough tokens), we used the wait and notify thread functions.
@@ -56,6 +58,6 @@ has enough tokens), we used the wait and notify thread functions.
 when the player has enough tokens and is on freeze, the aiThread using wait function.
 In Dealer class: we used the sleep thread function, and we used the notify function to the playerThreads and aiThreads
 when the dealer finished checking their potential sets. We did not create any other thread.
-3. In the debugg menu we tested that there were not any other threads except the ones created from the skeleton files
+3. In the debug menu, we tested that there were not any other threads except the ones created from the skeleton files
 and 1 playerThread 1 aiThread for each player. We also tested that the threads were waiting and sleeping when needed
 with debugging.
