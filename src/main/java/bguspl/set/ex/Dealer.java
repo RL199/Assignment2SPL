@@ -46,18 +46,31 @@ public class Dealer implements Runnable {
      */
     private long dealerWakeUpTime = 10;
 
-    //Queue for players with potential set
+    /**
+     * Thread-Safe queue for players with potential set
+     */
     private BlockingQueue<Player> playersWithPotSet;
 
-    //Queue for cards to be removed
+    /**
+     * Thread-Safe queue for cards to be removed
+     */
     private BlockingQueue<Integer> cardsToRemove;
 
-    //Boolean to check if there is a potential set
+    /**
+     * Check whether there is a potential set
+     */
     private boolean hasPotSet;
 
-    //Array of player threads
-    private Thread[] playerThreads;
+    /**
+     * Array of player threads
+     */
+    private final Thread[] playerThreads;
 
+    /**
+     * Array of AI threads
+     * For human players, aiThread = null
+     */
+    private final Thread[] aiThreads;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -66,11 +79,11 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
         this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length);
-        //TODO perhaps change capacity of queue
         this.cardsToRemove = new ArrayBlockingQueue<>(env.config.tableSize);
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
+        this.aiThreads = new Thread[env.config.players]; //for human players, aiThread = null
     }
 
     /**
@@ -83,6 +96,21 @@ public class Dealer implements Runnable {
             Thread playerThread = new Thread(player);
             playerThreads[player.id] = playerThread;
             playerThread.start();
+
+            if(!player.isHuman()) {
+                synchronized (this) {
+                    while (player.getAiThread() == null) {
+                        System.out.println("null");
+                        try {
+                            this.wait();
+                        } catch (InterruptedException ignored) {
+                        }
+                    }
+                }
+                aiThreads[player.id] = player.getAiThread();
+            }
+            else
+                aiThreads[player.id] = null;
         }
 
         while (!shouldFinish()) {
@@ -108,8 +136,7 @@ public class Dealer implements Runnable {
             try {
                 while(hasPotSet) {
                     Player player = playersWithPotSet.take();
-                    int player_id = player.id;
-                    int[] playerTokenCards = getPlayerTokenCards(player_id);
+                    int[] playerTokenCards = getPlayerTokenCards(player.id);
                     if (checkIfSet(playerTokenCards)){
                         handlePlayerPoint(player);
                         for(int card : playerTokenCards){
@@ -136,17 +163,18 @@ public class Dealer implements Runnable {
     public void terminate() {
         // TODO implement terminate()
 
-        System.out.println("in dealer terminate()");
+//        System.out.println("in dealer terminate()");
         for (int i = env.config.players - 1; i >= 0; i--) {
             Player player = players[i];
             player.terminate();
             try {
                 playerThreads[i].interrupt();
                 playerThreads[i].join();
+
             } catch (InterruptedException ignored) {}
         }
         terminate = true;
-        System.out.println("finished dealer terminate()");
+//        System.out.println("finished dealer terminate()");
     }
 
     /**
@@ -182,36 +210,39 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        // TODO implement removeCardsFromTable()
-
         try {
             while(!cardsToRemove.isEmpty()) {
                 int card = cardsToRemove.take();
                 if(table.cardToSlot[card] != null){
                     int slot = table.cardToSlot[card];
-                    System.out.println("card " + card + " removed from slot " + slot);
+//                    System.out.println("card " + card + " removed from slot " + slot);
                     table.removeCard(slot);
                 }
             }
         } catch (InterruptedException ignored) {}
     }
 
-    private void handlePlayerPoint(final Player player) {
-        //notify the player thread
+    private void notifyPlayer(final Player player) {
         synchronized(playerThreads[player.id]) {
             playerThreads[player.id].notify();
         }
-        player.point();
-        System.out.println("Player " + player.id + " has a set!");
 
+        if(aiThreads[player.id] != null) {
+            synchronized (aiThreads[player.id]) {
+                aiThreads[player.id].notifyAll();
+            }
+        }
+    }
+
+    private void handlePlayerPoint(final Player player) {
+        notifyPlayer(player);
+        player.point();
+//        System.out.println("Player " + player.id + " has a set!");
     }
 
     private void handlePlayerPenalty(final Player player) {
-        synchronized(playerThreads[player.id]) {
-            playerThreads[player.id].notify();
-        }
+        notifyPlayer(player);
         player.penalty();
-
         System.out.println("Player " + player.id + " has no set!");
     }
 
@@ -219,7 +250,6 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        // TODO implement placeCardsOnTable()
 
         int slots_available = this.env.config.tableSize - table.countCards();
         if(slots_available > 0 && !deck.isEmpty()) {
@@ -241,7 +271,6 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        // TODO implement sleepUntilWokenOrTimeout()
         synchronized (this) {
             try {
                 this.wait(dealerWakeUpTime);
@@ -254,7 +283,6 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        // TODO implement updateTimerDisplay(boolean reset)
         if(reset || reshuffleTime == Long.MAX_VALUE) {
             reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
         }
@@ -268,7 +296,6 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement removeAllCardsFromTable()
         for(int slot = 0; slot < env.config.tableSize ; slot++) {
             if(table.slotToCard[slot] != null){
                 Integer card = table.slotToCard[slot];
@@ -283,7 +310,6 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement announceWinners()
         int max_score = 0;
         int numWinners = 0;
         for(Player player : players) {

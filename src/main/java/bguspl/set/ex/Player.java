@@ -79,8 +79,6 @@ public class Player implements Runnable {
      */
     private final long freezeTimeInterval = 1000;
 
-
-
     /**
      * The class constructor.
      *
@@ -112,8 +110,6 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
         System.out.println("Player " + this.id + " started");
         while (!terminate) {
-
-            // TODO implement run() main player loop
             try{
                 while(freezeTime > 0){
                     this.env.ui.setFreeze(id, freezeTime);
@@ -133,22 +129,12 @@ public class Player implements Runnable {
                 }
                 if(this.countTokens == env.config.featureSize){
                     dealer.notifyPlayerHasPotSet(id);
-                    // if(!human){
-                    //     synchronized(aiThread){
-                    //         try{
-                    //             aiThread.wait();
-                    //         }
-                    //         catch (InterruptedException ignored) {}
-                    //     }
-                    // }
+
                     synchronized(playerThread){
                         try {
                             playerThread.wait();
                         } catch (InterruptedException ignored) {}
                     }
-                    // if(!human){
-                    //     aiThread.interrupt();
-                    // }
 
                     this.countTokens = 0;
                     table.clearTokens(this.id);
@@ -158,6 +144,7 @@ public class Player implements Runnable {
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
+
 
     /**
      * Creates an additional thread for an AI (computer) player. The main loop of this thread repeatedly generates
@@ -171,14 +158,25 @@ public class Player implements Runnable {
             while (!terminate) {
                 // TODO implement createArtificialIntelligence() player key press simulator
                 // The AI thread generates a random slot.
-
                 int randomSlot = (int) (Math.random() * this.env.config.tableSize);
                 keyPressed(randomSlot);
+
+                if(countTokens == env.config.featureSize && freezeTime > 0){
+                    synchronized(aiThread){
+                        try{
+                            aiThread.wait();
+                        }
+                        catch (InterruptedException ignored) {}
+                    }
+                }
+
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
         aiThread.start();
-
+        synchronized (dealer) {
+            dealer.notify();
+        }
     }
 
     /**
@@ -226,14 +224,6 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         freezeTime = env.config.pointFreezeMillis;
         this.env.ui.setFreeze(id, freezeTime);
-        // try {
-        //     freezeTime = this.env.config.pointFreezeMillis;
-        //     while(freezeTime >= sleepFreezeTimeInterval) {
-        //         this.env.ui.setFreeze(id, freezeTime);
-        //         freezeTime -= sleepFreezeTimeInterval;
-        //         Thread.sleep(sleepFreezeTimeInterval);
-        //     }
-        // } catch (InterruptedException ignored1) {}
     }
 
     /**
@@ -244,15 +234,6 @@ public class Player implements Runnable {
         System.out.println("penalty");
         freezeTime = env.config.penaltyFreezeMillis;
         this.env.ui.setFreeze(id, freezeTime);
-        // try {
-        //     freezeTime = this.env.config.penaltyFreezeMillis;
-        //     while(freezeTime >= sleepFreezeTimeInterval) {
-        //         this.env.ui.setFreeze(id, freezeTime);
-        //         freezeTime -= sleepFreezeTimeInterval;
-        //         Thread.sleep(sleepFreezeTimeInterval);
-        //     }
-        // } catch (InterruptedException ignored) {}
-
     }
 
     public int score() {
