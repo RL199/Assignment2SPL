@@ -74,7 +74,7 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
         this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length);
-        this.cardsToRemove = new ArrayBlockingQueue<>(players.length * env.config.featureSize);
+        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.featureSize);
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         // this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
@@ -124,6 +124,7 @@ public class Dealer implements Runnable {
                         for(int card : playerTokenCards){
                             cardsToRemove.put(card);
                         }
+                        removeCardsFromTable();
                     }
                     else{
                         handlePlayerPenalty(player);
@@ -131,7 +132,7 @@ public class Dealer implements Runnable {
                     count++;
                 }
             } catch (InterruptedException ignored) {}
-            removeCardsFromTable();
+            // removeCardsFromTable();
             placeCardsOnTable();
 
         }
@@ -244,6 +245,7 @@ public class Dealer implements Runnable {
                 }
             }
         }
+        //if there was change in the table, display hints
         if(slots_available > 0 && env.config.hints) {
             table.hints();
         }
