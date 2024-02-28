@@ -66,7 +66,6 @@ public class Table {
      * This method prints all possible legal sets of cards that are currently on the table.
      */
     public void hints() {
-
         List<Integer> deck = Arrays.stream(slotToCard).filter(Objects::nonNull).collect(Collectors.toList());
         env.util.findSets(deck, Integer.MAX_VALUE).forEach(set -> {
             StringBuilder sb = new StringBuilder().append("Hint: Set found: ");
@@ -93,7 +92,6 @@ public class Table {
      * Places a card on the table in a grid slot.
      * @param card - the card id to place in the slot.
      * @param slot - the slot in which the card should be placed.
-     *
      * @post - the card placed is on the table, in the assigned slot.
      */
     public void placeCard(int card, int slot) {
@@ -104,7 +102,6 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
 
-        // TODO implement placeCard(int card, int slot)
         this.env.ui.placeCard(card,slot);
     }
 
@@ -117,7 +114,6 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
-        // TODO implement removeCard(int slot)
         for(int player = 0; player < env.config.players; player++) {
             removeToken(player,slot);
         }
@@ -135,7 +131,6 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement placeToken(int player, int slot)
         this.env.ui.placeToken(player,slot);
         tokens[player][slot] = true;
     }
@@ -147,7 +142,6 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO implement removeToken(int player, int slot)
         if(tokens[player][slot]) {
             this.env.ui.removeToken(player,slot);
             tokens[player][slot] = false;
