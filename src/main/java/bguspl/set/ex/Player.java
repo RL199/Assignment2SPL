@@ -97,7 +97,6 @@ public class Player implements Runnable {
         this.countTokens = 0;
         this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize);
         this.dealer = dealer;
-        // this.dealerActions = new ArrayBlockingQueue<>(1);
     }
 
     /**
@@ -124,8 +123,10 @@ public class Player implements Runnable {
                     this.countTokens--;
                 }
                 else{
-                    table.placeToken(this.id, slot);
-                    this.countTokens++;
+                    if(this.table.slotToCard[slot] != null){
+                        table.placeToken(this.id, slot);
+                        this.countTokens++;
+                    }
                 }
                 if(this.countTokens == env.config.featureSize){
                     dealer.notifyPlayerHasPotSet(id);
@@ -220,6 +221,7 @@ public class Player implements Runnable {
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        env.logger.info("player " + id + " scored a point");
         freezeTime = env.config.pointFreezeMillis;
         this.env.ui.setFreeze(id, freezeTime);
     }

@@ -57,11 +57,6 @@ public class Dealer implements Runnable {
     private BlockingQueue<Integer> cardsToRemove;
 
     /**
-     * Check whether there is a potential set
-     */
-    private boolean hasPotSet;
-
-    /**
      * Array of player threads
      */
     private final Thread[] playerThreads;
@@ -160,6 +155,7 @@ public class Dealer implements Runnable {
 
             } catch (InterruptedException ignored) {}
         }
+        env.logger.info("sum points: " + Arrays.stream(players).mapToInt(Player::score).sum());
         terminate = true;
 //        System.out.println("finished dealer terminate()");
     }
