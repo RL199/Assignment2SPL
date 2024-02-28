@@ -131,7 +131,7 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
-
+            //note
             //Check if any player has a set
             try {
                 while(hasPotSet) {

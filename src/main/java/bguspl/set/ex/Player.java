@@ -237,6 +237,7 @@ public class Player implements Runnable {
     }
 
     public int score() {
+
         return score;
     }
 
