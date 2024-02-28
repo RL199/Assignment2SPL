@@ -12,8 +12,17 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-We are not entitled to this bonus.
-
+1. We supported all the configuration int variables and used them instead of magic numbers.
+We created fields to save numbers like freezeTimeInterval and dealerWakeUpTime instead of magic numbers.
+We used featureSize configuration field to adjust the number of cards that require a set.
+To use the hints configuration, we implemented it at every table cards changes.
+2. to use hints, we implemented it in placeCardsOnTable method in Dealer class.
+The config field featureSize was used in the size of actions queue in player class,
+aiThread and player runs to check if there are enough tokens. We used it also to
+determine the size of variables in the Dealer class like cardsToRemove queue in the constructor and
+token_cards in getPlayerTokenCards method in Dealer.
+3. We checked the our code that we didnt use magic numbers, and if we did we replaced it
+with the config fields and class fields.
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
@@ -39,4 +48,8 @@ We are not entitled to this bonus.
 changed on the display, key input needs to be handled, etc.) and the only threads created by you are:
 1 thread per player + 1 additional thread for non-human players.
 
-We are not entitled to this bonus.
+1. We used only the dealer, player and aiPlayer Threads that already been created for us in the skeleton files.
+We didnt create any more threads, and for each player object it has 1 player thread and 1 aiPlayer thread(if needed).
+When the player thread (including the ai) needed to wait for the dealer and do nothing in the meantime(when the player
+has enough tokens), we used the wait and notify thread functions.
+2. In the Player class: 

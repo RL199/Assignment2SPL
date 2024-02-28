@@ -57,11 +57,6 @@ public class Dealer implements Runnable {
     private BlockingQueue<Integer> cardsToRemove;
 
     /**
-     * Check whether there is a potential set
-     */
-    private boolean hasPotSet;
-
-    /**
      * Array of player threads
      */
     private final Thread[] playerThreads;
@@ -79,9 +74,9 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
         this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length);
-        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.tableSize);
+        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.featureSize);
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
-        this.hasPotSet = false;
+        // this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
         this.aiThreads = new Thread[env.config.players]; //for human players, aiThread = null
     }
@@ -97,20 +92,6 @@ public class Dealer implements Runnable {
             playerThreads[player.id] = playerThread;
             playerThread.start();
 
-            if(!player.isHuman()) {
-                synchronized (this) {
-                    while (player.getAiThread() == null) {
-                        System.out.println("null");
-                        try {
-                            this.wait();
-                        } catch (InterruptedException ignored) {
-                        }
-                    }
-                }
-                aiThreads[player.id] = player.getAiThread();
-            }
-            else
-                aiThreads[player.id] = null;
         }
 
         while (!shouldFinish()) {
@@ -134,7 +115,8 @@ public class Dealer implements Runnable {
             //note
             //Check if any player has a set
             try {
-                while(hasPotSet) {
+                int count = 0;
+                while(!playersWithPotSet.isEmpty() && count < env.config.players){
                     Player player = playersWithPotSet.take();
                     int[] playerTokenCards = getPlayerTokenCards(player.id);
                     if (checkIfSet(playerTokenCards)){
@@ -142,14 +124,15 @@ public class Dealer implements Runnable {
                         for(int card : playerTokenCards){
                             cardsToRemove.put(card);
                         }
+                        removeCardsFromTable();
                     }
                     else{
                         handlePlayerPenalty(player);
                     }
-                    hasPotSet = !(playersWithPotSet.isEmpty());
+                    count++;
                 }
             } catch (InterruptedException ignored) {}
-            removeCardsFromTable();
+            // removeCardsFromTable();
             placeCardsOnTable();
 
         }
@@ -173,6 +156,7 @@ public class Dealer implements Runnable {
 
             } catch (InterruptedException ignored) {}
         }
+        env.logger.info("sum points: " + Arrays.stream(players).mapToInt(Player::score).sum());
         terminate = true;
 //        System.out.println("finished dealer terminate()");
     }
@@ -243,7 +227,7 @@ public class Dealer implements Runnable {
     private void handlePlayerPenalty(final Player player) {
         notifyPlayer(player);
         player.penalty();
-        System.out.println("Player " + player.id + " has no set!");
+//        System.out.println("Player " + player.id + " has no set!");
     }
 
     /**
@@ -261,6 +245,7 @@ public class Dealer implements Runnable {
                 }
             }
         }
+        //if there was change in the table, display hints
         if(slots_available > 0 && env.config.hints) {
             table.hints();
         }
@@ -335,13 +320,15 @@ public class Dealer implements Runnable {
      * Notify the dealer that a player has set a set.
      *
      * @param player_id - the id of the player that has set a set.
-     * @throws InterruptedException - if the thread is interrupted.
      */
-    public void notifyPlayerHasPotSet(int player_id) {
-        hasPotSet = true;
+    protected void notifyPlayerHasPotSet(int player_id) {
+        // hasPotSet = true;
         try {
             playersWithPotSet.put(players[player_id]);
         } catch (InterruptedException ignored) {}
     }
 
+    protected void setPlayerAi(int player_id, Thread aiThread){
+        this.aiThreads[player_id] = aiThread;
+    }
 }
