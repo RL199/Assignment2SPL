@@ -55,10 +55,9 @@ public class Dealer implements Runnable {
     //Boolean to check if there is a potential set
     private boolean hasPotSet;
 
-    private BlockingQueue<Player> players_asleep;
-
     //Array of player threads
     private Thread[] playerThreads;
+
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -72,7 +71,6 @@ public class Dealer implements Runnable {
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
-        this.players_asleep = new ArrayBlockingQueue<>(env.config.players);
     }
 
     /**
@@ -106,8 +104,9 @@ public class Dealer implements Runnable {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
 
+            //Check if any player has a set
             try {
-                if(hasPotSet) {
+                while(hasPotSet) {
                     Player player = playersWithPotSet.take();
                     int player_id = player.id;
                     int[] playerTokenCards = getPlayerTokenCards(player_id);
@@ -120,12 +119,12 @@ public class Dealer implements Runnable {
                     else{
                         handlePlayerPenalty(player);
                     }
+                    hasPotSet = !(playersWithPotSet.isEmpty());
                 }
             } catch (InterruptedException ignored) {}
-
             removeCardsFromTable();
             placeCardsOnTable();
-            hasPotSet = !(playersWithPotSet.isEmpty());
+
         }
         if(System.currentTimeMillis() >= reshuffleTime)
             updateTimerDisplay(true);
@@ -136,7 +135,6 @@ public class Dealer implements Runnable {
      */
     public void terminate() {
         // TODO implement terminate()
-        //Terminate all player threads in reverse order
 
         System.out.println("in dealer terminate()");
         for (int i = env.config.players - 1; i >= 0; i--) {
@@ -199,19 +197,20 @@ public class Dealer implements Runnable {
     }
 
     private void handlePlayerPoint(final Player player) {
+        //notify the player thread
+        synchronized(playerThreads[player.id]) {
+            playerThreads[player.id].notify();
+        }
         player.point();
-        try {
-            players_asleep.put(player);
-        } catch (InterruptedException ignored) {}
         System.out.println("Player " + player.id + " has a set!");
 
     }
 
     private void handlePlayerPenalty(final Player player) {
+        synchronized(playerThreads[player.id]) {
+            playerThreads[player.id].notify();
+        }
         player.penalty();
-        try {
-            players_asleep.put(player);
-        } catch (InterruptedException ignored) {}
 
         System.out.println("Player " + player.id + " has no set!");
     }
@@ -246,20 +245,10 @@ public class Dealer implements Runnable {
         synchronized (this) {
             try {
                 this.wait(dealerWakeUpTime);
-            } catch (InterruptedException ignored) {
-                System.out.println(ignored.getMessage());
-            }
+            } catch (InterruptedException ignored) {}
         }
     }
 
-    public void updateTimerDisplayWrapper() {
-        updateTimerDisplay(false);
-    }
-
-    /**
-     * The time interval for the sleep method when freezing the player.
-     */
-    private long sleepFreezeTimeInterval = 900;
 
     /**
      * Reset and/or update the countdown and the countdown display.
@@ -273,29 +262,6 @@ public class Dealer implements Runnable {
         long time = reshuffleTime - System.currentTimeMillis();
         boolean warning = time <= this.env.config.turnTimeoutWarningMillis;
         this.env.ui.setCountdown(time,warning);
-
-        //Players timer
-//        BlockingQueue<Player> tmp_players_asleep = new ArrayBlockingQueue<>(players_asleep.size());
-        if(!players_asleep.isEmpty())
-            for(final Player player : players_asleep) {
-                long freezeTime = player.getFreezeTime();
-                if(freezeTime >= sleepFreezeTimeInterval) {
-                    //TODO: distinguish between freeze and win
-                    this.env.ui.setFreeze(player.id, freezeTime);
-                    freezeTime -= sleepFreezeTimeInterval;
-                    try {
-                        Thread.sleep(sleepFreezeTimeInterval);
-                    } catch (InterruptedException ignored) {}
-                }
-                else {
-                    this.env.ui.setFreeze(player.id, 0);
-                    freezeTime = 0;
-                    players_asleep.remove(player);
-                }
-
-                player.setFreezeTime(freezeTime);
-
-            }
     }
 
     /**
