@@ -108,7 +108,7 @@ public class Player implements Runnable {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         if (!human) createArtificialIntelligence();
-        System.out.println("Player " + this.id + " started");
+//        System.out.println("Player " + this.id + " started");
         while (!terminate) {
             try{
                 while(freezeTime > 0){
@@ -118,7 +118,7 @@ public class Player implements Runnable {
                 }
                 this.env.ui.setFreeze(id, 0);
                 int slot = actions.take();
-                System.out.println("Player " + this.id + " took action on slot " + slot);
+//                System.out.println("Player " + this.id + " took action on slot " + slot);
                 if(table.hasToken(this.id, slot)){
                     table.removeToken(this.id, slot);
                     this.countTokens--;
@@ -174,9 +174,7 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
         aiThread.start();
-        synchronized (dealer) {
-            dealer.notify();
-        }
+        dealer.setPlayerAi(this.id, this.aiThread);
     }
 
     /**
@@ -184,7 +182,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement terminate()
-        System.out.println("in player terminate()");
+//        System.out.println("in player terminate()");
         terminate = true;
         if(!human){
             try{
@@ -193,7 +191,7 @@ public class Player implements Runnable {
             }
             catch (InterruptedException ignored) {}
         }
-        System.out.println("finished player terminate()");
+//        System.out.println("finished player terminate()");
     }
 
     /**
@@ -218,7 +216,7 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement point()
-        System.out.println("point");
+//        System.out.println("point");
 
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
@@ -231,12 +229,13 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement penalty()
-        System.out.println("penalty");
+//        System.out.println("penalty");
         freezeTime = env.config.penaltyFreezeMillis;
         this.env.ui.setFreeze(id, freezeTime);
     }
 
     public int score() {
+
         return score;
     }
 
