@@ -73,8 +73,8 @@ public class Dealer implements Runnable {
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
-        this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length);
-        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.featureSize);
+        this.playersWithPotSet = new ArrayBlockingQueue<>(this.players.length, true);
+        this.cardsToRemove = new ArrayBlockingQueue<>(env.config.featureSize, true);
         //The maximum number of cards to be removed and/or empty slots after wards, is all the cards o_O
         // this.hasPotSet = false;
         this.playerThreads = new Thread[env.config.players];
@@ -245,8 +245,12 @@ public class Dealer implements Runnable {
                 }
             }
         }
+        if(slots_available > 0 && !deck.isEmpty()){
+            updateTimerDisplay(true);
+        }
         //if there was change in the table, display hints
         if(slots_available > 0 && env.config.hints) {
+            System.out.println();
             table.hints();
         }
 

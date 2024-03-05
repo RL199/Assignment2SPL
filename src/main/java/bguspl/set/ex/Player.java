@@ -95,7 +95,7 @@ public class Player implements Runnable {
         this.human = human;
 
         this.countTokens = 0;
-        this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize);
+        this.actions = new ArrayBlockingQueue<>(this.env.config.featureSize, true);
         this.dealer = dealer;
     }
 
